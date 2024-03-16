@@ -1,9 +1,4 @@
-# lib/department.py
-from __init__ import CURSOR, CONN
-
-
 class Department:
-
     # Dictionary of objects saved to the database.
     all = {}
 
@@ -24,9 +19,7 @@ class Department:
         if isinstance(name, str) and len(name):
             self._name = name
         else:
-            raise ValueError(
-                "Name must be a non-empty string"
-            )
+            raise ValueError("Name must be a non-empty string")
 
     @property
     def location(self):
@@ -37,9 +30,7 @@ class Department:
         if isinstance(location, str) and len(location):
             self._location = location
         else:
-            raise ValueError(
-                "Location must be a non-empty string"
-            )
+            raise ValueError("Location must be a non-empty string")
 
     @classmethod
     def create_table(cls):
@@ -70,10 +61,8 @@ class Department:
             INSERT INTO departments (name, location)
             VALUES (?, ?)
         """
-
         CURSOR.execute(sql, (self.name, self.location))
         CONN.commit()
-
         self.id = CURSOR.lastrowid
         type(self).all[self.id] = self
 
@@ -97,37 +86,20 @@ class Department:
     def delete(self):
         """Delete the table row corresponding to the current Department instance,
         delete the dictionary entry, and reassign id attribute"""
-
         sql = """
             DELETE FROM departments
             WHERE id = ?
         """
-
         CURSOR.execute(sql, (self.id,))
         CONN.commit()
-
-        # Delete the dictionary entry using id as the key
         del type(self).all[self.id]
-
-        # Set the id to None
         self.id = None
 
     @classmethod
     def instance_from_db(cls, row):
         """Return a Department object having the attribute values from the table row."""
-
-        # Check the dictionary for an existing instance using the row's primary key
-        department = cls.all.get(row[0])
-        if department:
-            # ensure attributes match row values in case local instance was modified
-            department.name = row[1]
-            department.location = row[2]
-        else:
-            # not in dictionary, create new instance and add to dictionary
-            department = cls(row[1], row[2])
-            department.id = row[0]
-            cls.all[department.id] = department
-        return department
+        department_id, name, location = row
+        return cls(name, location, department_id)
 
     @classmethod
     def get_all(cls):
@@ -136,9 +108,7 @@ class Department:
             SELECT *
             FROM departments
         """
-
         rows = CURSOR.execute(sql).fetchall()
-
         return [cls.instance_from_db(row) for row in rows]
 
     @classmethod
@@ -149,7 +119,6 @@ class Department:
             FROM departments
             WHERE id = ?
         """
-
         row = CURSOR.execute(sql, (id,)).fetchone()
         return cls.instance_from_db(row) if row else None
 
@@ -161,20 +130,5 @@ class Department:
             FROM departments
             WHERE name is ?
         """
-
         row = CURSOR.execute(sql, (name,)).fetchone()
         return cls.instance_from_db(row) if row else None
-
-    def employees(self):
-        """Return list of employees associated with current department"""
-        from employee import Employee
-        sql = """
-            SELECT * FROM employees
-            WHERE department_id = ?
-        """
-        CURSOR.execute(sql, (self.id,),)
-
-        rows = CURSOR.fetchall()
-        return [
-            Employee.instance_from_db(row) for row in rows
-        ]
